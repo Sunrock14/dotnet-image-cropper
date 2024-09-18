@@ -1,0 +1,81 @@
+﻿@{
+    ViewData["Title"] = "Cropper";
+}
+@section Styles {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
+    <style>
+        #image-container {
+            max-width: 500px;
+            margin: 20px auto;
+        }
+
+        #cropButton {
+            display: block;
+            margin: 20px auto;
+        }
+    </style>
+}
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const image = document.getElementById('image');
+        const cropButton = document.getElementById('cropButton');
+        let cropper;
+
+        fileInput.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                image.src = event.target.result;
+                if (cropper) {
+                    cropper.destroy();
+                }
+                cropper = new Cropper(image, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                });
+            };
+
+            reader.readAsDataURL(file);
+        });
+
+        cropButton.addEventListener('click', function (event) {
+            event.preventDefault();
+            const cropperDto = new FormData();
+            cropperDto.append('title', document.getElementById('title').value);
+            cropperDto.append('description', document.getElementById('description').value);
+            if (cropper) {
+                const croppedCanvas = cropper.getCroppedCanvas();
+                croppedCanvas.toBlob(function (blob) {
+                    cropperDto.append('image', blob);
+                    $.ajax({
+                        type: "POST",
+                        url: '@Url.Action("Index", "Home")',
+                        data: cropperDto,
+                        processData: false,
+                        contentType: false,
+                        success: function (data) {
+                            alert(data.message);
+                        },
+                        error: function (xhr, status, error) {
+                            console.error("Bir hata oluştu: " + status + "\nHata: " + error);
+                        }
+                    });
+                }, 'image/jpeg');                
+            } else {
+                console.error("Kırpıcı (cropper) başlatılmadı");
+            }
+        });
+    </script>
+}
+<div class="text-center">
+    <input type="file" id="fileInput" accept="image/*">
+    <div id="image-container">
+        <img id="image" src="" alt="Yüklenen resim">
+    </div>
+    <input type="text" id="title" placeholder="Başlık">
+    <textarea id="description" placeholder="Açıklama"></textarea>
+    <button id="cropButton">Resmi Kırp ve Gönder</button>
+</div>
